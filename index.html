@@ -247,7 +247,14 @@ async function loadStudentFromAirtable(studentCode) {
         const data = await response.json();
         
         if (data.records && data.records.length > 0) {
-            return data.records[0].fields;
+            const record = data.records[0];
+            // Store both the fields AND the record ID for linking
+            const studentInfo = {
+                ...record.fields,
+                airtable_record_id: record.id  // Store the actual Airtable record ID
+            };
+            console.log('📊 Student loaded with record ID:', studentInfo.airtable_record_id);
+            return studentInfo;
         } else {
             return {
                 student_id: 'Jim001',
@@ -264,7 +271,8 @@ async function loadStudentFromAirtable(studentCode) {
                 bv_dificultades: 'formas verbales',
                 hay_dificultades: 'hay vs ahí',
                 gj_dificultades: 'ge/gi vs je/ji',
-                enfoque_actual: 'H'
+                enfoque_actual: 'H',
+                airtable_record_id: null  // Demo data has no real record ID
             };
         }
     } catch (error) {
@@ -277,9 +285,9 @@ async function saveSessionToAirtable(sessionData) {
     try {
         console.log('💾 Saving session to Airtable:', sessionData);
         
-        // Clean and format the data for Airtable
+        // Clean and format the data for Airtable with proper linking
         const cleanSessionData = {
-            student_id: String(sessionData.student_id || ''),
+            student_id: studentData.airtable_record_id ? [studentData.airtable_record_id] : undefined, // Array of record IDs for linking
             practice_type: String(sessionData.practice_type || ''),
             start_time: sessionData.start_time,
             end_time: sessionData.end_time, 
@@ -290,6 +298,12 @@ async function saveSessionToAirtable(sessionData) {
             categories_practiced: Number(sessionData.categories_practiced || 0),
             questions_data: String(sessionData.questions_data || '[]')
         };
+        
+        // If we don't have a record ID (demo data), skip the link
+        if (!studentData.airtable_record_id) {
+            delete cleanSessionData.student_id;
+            console.log('⚠️ No record ID available, saving session without student link');
+        }
         
         console.log('🧹 Cleaned data for Airtable:', cleanSessionData);
         
