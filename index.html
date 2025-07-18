@@ -437,6 +437,8 @@ async function generateAIQuestion() {
     try {
         const prompt = createQuestionPrompt();
         
+        console.log('🤖 Sending prompt to Claude:', prompt.substring(0, 100) + '...');
+        
         const response = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
@@ -446,21 +448,52 @@ async function generateAIQuestion() {
             },
             body: JSON.stringify({
                 model: "claude-3-5-sonnet-20241022",
-                max_tokens: 1000,
+                max_tokens: 500,
                 messages: [{ role: "user", content: prompt }]
             })
         });
         
+        console.log('📡 Claude response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
-        let cleanResponse = data.content[0].text.replace(/```json\n?|\n?```/g, '').trim();
+        console.log('📦 Claude raw response:', data);
+        
+        let claudeResponse = data.content[0].text;
+        console.log('🔤 Claude text response:', claudeResponse);
+        
+        // Clean response more thoroughly
+        let cleanResponse = claudeResponse
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .replace(/^[^{]*/, '')  // Remove anything before first {
+            .replace(/[^}]*$/, '}') // Remove anything after last }
+            .trim();
+            
+        console.log('🧹 Cleaned response:', cleanResponse);
+        
         const questionData = JSON.parse(cleanResponse);
+        console.log('✅ Parsed question data:', questionData);
+        
+        // Validate the response structure
+        if (!questionData.question || !questionData.options || 
+            typeof questionData.correct !== 'number' || !questionData.explanation) {
+            throw new Error('Invalid question structure from AI');
+        }
         
         currentExercise = questionData;
         usedQuestions.push({ context: questionData.context });
         displayQuestion(questionData);
         
+        console.log('✨ AI question generated successfully');
+        
     } catch (error) {
-        console.error('Error generating question:', error);
+        console.error('❌ AI Question generation failed:', error);
+        console.log('🔄 Using fallback question instead');
+        
         currentExercise = createFallbackQuestion();
         displayQuestion(currentExercise);
     }
@@ -469,43 +502,111 @@ async function generateAIQuestion() {
 function createQuestionPrompt() {
     const usedContexts = usedQuestions.map(q => q.context).join(', ');
     
-    return `Create a unique Spanish ${selectedPracticeType} practice question #${currentQuestion} for student interests: ${studentData.movies}, ${studentData.sports}, ${studentData.food}, ${studentData.hobbies}. 
+    let specificInstructions = '';
+    
+    switch(selectedPracticeType) {
+        case 'H':
+            specificInstructions = `Create an H practice question. Use ONLY H word pairs like: haber/a ver, hecho/echo, hasta/asta, haya/allá, ha/a, he/e, hacer/acer, hacia/acia, hay/ay. Make the context about: ${studentData.movies || 'movies'}, ${studentData.sports || 'sports'}, ${studentData.food || 'food'}.`;
+            break;
+        case 'BV':
+            specificInstructions = `Create a B/V practice question. Use ONLY B/V word pairs like: estaba/estava, votar/botar, tuvo/tubo, grabar/gravar, absorber/absorver, escribir/escrivir. Make the context about: ${studentData.hobbies || 'hobbies'}, ${studentData.music || 'music'}.`;
+            break;
+        case 'HAY':
+            specificInstructions = `Create a HAY/AHÍ/AY question. Use ONLY these three words: hay (existence), ahí (location), ay (exclamation). Context about: ${studentData.sports || 'sports'}, ${studentData.food || 'food'}.`;
+            break;
+        case 'GJ':
+            specificInstructions = `Create a G/J practice question. Use G/J word pairs like: elegir/elijir, gente/jente, coger/cojer, gerente/jerente, geografía/jeografía, extranjero/extrangero. Context about: ${studentData.movies || 'movies'}.`;
+            break;
+    }
+    
+    return `${specificInstructions}
 
-Make it completely different from: ${usedContexts}
+Question #${currentQuestion}. Make it DIFFERENT from: ${usedContexts}
 
-Focus on ${selectedPracticeType} spelling rules. Return JSON: 
+Return ONLY this JSON format:
 {
-  "question": "Complete the sentence with the correct word",
-  "context": "Unique sentence with ___ blank using their interests",
+  "question": "Complete la oración:",
+  "context": "NEW sentence with ___ blank",
   "options": ["correct_word", "incorrect_word"],
   "correct": 0,
-  "explanation": "Brief explanation"
-}
-
-NO markdown, just JSON.`;
+  "explanation": "Brief rule explanation"
+}`;
 }
 
 function createFallbackQuestion() {
     const fallbacks = {
         H: [
             { question: "Complete la oración:", context: "Voy _____ si hay mensajes.", options: ["a ver", "haber"], correct: 0, explanation: "'A ver' significa 'to see'." },
-            { question: "¿Cuál es correcta?", context: "Ya _____ terminado.", options: ["he", "e"], correct: 0, explanation: "'He' es del verbo haber." }
+            { question: "¿Cuál es correcta?", context: "Ya _____ terminado mi tarea.", options: ["he", "e"], correct: 0, explanation: "'He' es del verbo haber." },
+            { question: "Selecciona la apropiada:", context: "El trabajo está _____ muy bien.", options: ["hecho", "echo"], correct: 0, explanation: "'Hecho' es el participio de hacer." },
+            { question: "Complete correctamente:", context: "Caminé _____ la escuela.", options: ["hasta", "asta"], correct: 0, explanation: "'Hasta' indica límite de lugar o tiempo." },
+            { question: "¿Cuál es la forma correcta?", context: "Espero que _____ buen tiempo.", options: ["haya", "allá"], correct: 0, explanation: "'Haya' es del verbo haber en subjuntivo." },
+            { question: "Selecciona la opción:", context: "No _____ visto esa película.", options: ["he", "e"], correct: 0, explanation: "'He' forma el pretérito perfecto." },
+            { question: "Complete la frase:", context: "Tengo que _____ la compra.", options: ["hacer", "ecer"], correct: 0, explanation: "'Hacer' se escribe con h." },
+            { question: "¿Cuál es apropiada?", context: "_____ muchas cosas por hacer.", options: ["Hay", "Ay"], correct: 0, explanation: "'Hay' indica existencia." },
+            { question: "Selecciona correcta:", context: "Me voy _____ casa.", options: ["hacia", "acia"], correct: 0, explanation: "'Hacia' se escribe con h." },
+            { question: "Complete bien:", context: "_____ que estudiar más.", options: ["Hay", "Ay"], correct: 0, explanation: "'Hay que' indica obligación." },
+            { question: "¿Cuál es la correcta?", context: "Ese _____ es muy alto.", options: ["hombre", "ombre"], correct: 0, explanation: "'Hombre' se escribe con h." },
+            { question: "Selecciona la forma:", context: "No _____ nada que hacer.", options: ["hay", "ay"], correct: 0, explanation: "'Hay' indica existencia." },
+            { question: "Complete la oración:", context: "_____ frío en invierno.", options: ["Hace", "Ace"], correct: 0, explanation: "'Hace' del verbo hacer." },
+            { question: "¿Cuál es apropiada?", context: "Voy _____ el médico.", options: ["hacia", "acia"], correct: 0, explanation: "'Hacia' indica dirección." },
+            { question: "Selecciona correcta:", context: "_____ estudiado mucho.", options: ["He", "E"], correct: 0, explanation: "'He' es auxiliar de haber." }
         ],
         BV: [
-            { question: "Selecciona la correcta:", context: "Yo _____ en casa.", options: ["estaba", "estava"], correct: 0, explanation: "'Estaba' va con B." },
-            { question: "¿Cuál es apropiada?", context: "Voy a _____.", options: ["votar", "botar"], correct: 0, explanation: "'Votar' es elegir." }
+            { question: "Selecciona la correcta:", context: "Yo _____ en casa ayer.", options: ["estaba", "estava"], correct: 0, explanation: "'Estaba' va con B." },
+            { question: "¿Cuál es apropiada?", context: "Voy a _____ en las elecciones.", options: ["votar", "botar"], correct: 0, explanation: "'Votar' es elegir." },
+            { question: "Complete correctamente:", context: "Mi hermano _____ un regalo.", options: ["tuvo", "tubo"], correct: 0, explanation: "'Tuvo' es del verbo tener." },
+            { question: "Selecciona la forma:", context: "Quiero _____ esa canción.", options: ["grabar", "gravar"], correct: 0, explanation: "'Grabar' es registrar sonido." },
+            { question: "¿Cuál es la correcta?", context: "Nosotros _____ contentos.", options: ["estábamos", "estávamos"], correct: 0, explanation: "Estar se conjuga con B." },
+            { question: "Complete la frase:", context: "Ella _____ muy inteligente.", options: ["estaba", "estava"], correct: 0, explanation: "'Estaba' es la forma correcta." },
+            { question: "Selecciona apropiada:", context: "Voy a _____ la pelota.", options: ["botar", "votar"], correct: 0, explanation: "'Botar' es lanzar." },
+            { question: "¿Cuál es correcta?", context: "El _____ está roto.", options: ["tubo", "tuvo"], correct: 0, explanation: "'Tubo' es un objeto." },
+            { question: "Complete bien:", context: "Van a _____ el edificio.", options: ["derribar", "derrivar"], correct: 0, explanation: "Verbos en -bar van con B." },
+            { question: "Selecciona la forma:", context: "Me gusta _____ libros.", options: ["absorber", "absorver"], correct: 0, explanation: "'Absorber' va con B." },
+            { question: "¿Cuál es la apropiada?", context: "Tú _____ muy feliz.", options: ["estabas", "estavas"], correct: 0, explanation: "Estar siempre con B." },
+            { question: "Complete la oración:", context: "Quiero _____ una foto.", options: ["revelar", "rebelar"], correct: 0, explanation: "'Revelar' una foto va con V." },
+            { question: "Selecciona correcta:", context: "El agua _____ muy fría.", options: ["estaba", "estava"], correct: 0, explanation: "'Estaba' con B siempre." },
+            { question: "¿Cuál es la forma?", context: "Vamos a _____ el problema.", options: ["resolver", "resomber"], correct: 0, explanation: "'Resolver' va con V." },
+            { question: "Complete apropiadamente:", context: "Ella _____ una carta.", options: ["escribía", "escrivía"], correct: 0, explanation: "'Escribir' va con B." }
         ],
         HAY: [
-            { question: "Complete:", context: "_____ estudiantes aquí.", options: ["Hay", "Ahí"], correct: 0, explanation: "'Hay' indica existencia." },
-            { question: "¿Cuál es correcta?", context: "El libro está _____.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí' indica lugar." }
+            { question: "Complete:", context: "_____ estudiantes en clase.", options: ["Hay", "Ahí"], correct: 0, explanation: "'Hay' indica existencia." },
+            { question: "¿Cuál es correcta?", context: "El libro está _____.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí' indica lugar." },
+            { question: "Selecciona apropiada:", context: "¡_____, me duele!", options: ["Ay", "Hay"], correct: 0, explanation: "'Ay' es exclamación." },
+            { question: "Complete la frase:", context: "_____ mucha gente aquí.", options: ["Hay", "Ahí"], correct: 0, explanation: "'Hay' significa existe." },
+            { question: "¿Cuál es la forma?", context: "Pon el cuaderno _____.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí' es lugar específico." },
+            { question: "Selecciona correcta:", context: "¡_____, qué susto!", options: ["Ay", "Hay"], correct: 0, explanation: "'Ay' expresa sorpresa." },
+            { question: "Complete bien:", context: "_____ que estudiar más.", options: ["Hay", "Ahí"], correct: 0, explanation: "'Hay que' es obligación." },
+            { question: "¿Cuál es apropiada?", context: "Mira lo que está _____.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí' señala ubicación." },
+            { question: "Selecciona la forma:", context: "¡_____, no sabía eso!", options: ["Ay", "Hay"], correct: 0, explanation: "'Ay' muestra asombro." },
+            { question: "Complete la oración:", context: "_____ tres opciones.", options: ["Hay", "Ahí"], correct: 0, explanation: "'Hay' cuenta existencia." },
+            { question: "¿Cuál es correcta?", context: "Déjalo _____ mismo.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí mismo' es lugar exacto." },
+            { question: "Selecciona apropiada:", context: "¡_____, qué dolor!", options: ["Ay", "Hay"], correct: 0, explanation: "'Ay' expresa dolor." },
+            { question: "Complete correctamente:", context: "No _____ problema.", options: ["hay", "ahí"], correct: 0, explanation: "'No hay' es negación de existencia." },
+            { question: "¿Cuál es la forma?", context: "Siéntate _____ por favor.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí' indica dónde sentarse." },
+            { question: "Selecciona la correcta:", context: "¡_____, casi me caigo!", options: ["Ay", "Hay"], correct: 0, explanation: "'Ay' muestra susto." }
         ],
         GJ: [
-            { question: "Selecciona:", context: "Quiero que _____ bien.", options: ["elija", "elija"], correct: 0, explanation: "'Elegir' en subjuntivo va con J." }
+            { question: "Selecciona:", context: "Quiero que _____ bien.", options: ["elija", "elija"], correct: 0, explanation: "'Elegir' en subjuntivo va con J." },
+            { question: "¿Cuál es correcta?", context: "La _____ está preocupada.", options: ["gente", "jente"], correct: 0, explanation: "'Gente' va con G." },
+            { question: "Complete la frase:", context: "Voy a _____ mis libros.", options: ["coger", "cojer"], correct: 0, explanation: "'Coger' va con G." },
+            { question: "Selecciona apropiada:", context: "El _____ es muy amable.", options: ["jefe", "gefe"], correct: 0, explanation: "'Jefe' va con J." },
+            { question: "¿Cuál es la forma?", context: "Necesito _____ un color.", options: ["elegir", "elijir"], correct: 0, explanation: "'Elegir' infinitivo va con G." },
+            { question: "Complete bien:", context: "Me gusta la _____ joven.", options: ["gente", "jente"], correct: 0, explanation: "'Gente' siempre con G." },
+            { question: "Selecciona correcta:", context: "Vamos a _____ temprano.", options: ["llegar", "llegar"], correct: 0, explanation: "Ambas son iguales, pero 'llegar' va con G." },
+            { question: "¿Cuál es apropiada?", context: "El _____ trabaja mucho.", options: ["gerente", "jerente"], correct: 0, explanation: "'Gerente' va con G." },
+            { question: "Complete la oración:", context: "Espero que _____ pronto.", options: ["llegue", "llegue"], correct: 0, explanation: "'Llegar' en subjuntivo mantiene G." },
+            { question: "Selecciona la forma:", context: "Es muy _____.", options: ["inteligente", "intelijente"], correct: 0, explanation: "Palabras en -ente van con G." },
+            { question: "¿Cuál es correcta?", context: "Voy al _____.", options: ["garaje", "garaxe"], correct: 0, explanation: "'Garaje' va con J." },
+            { question: "Complete apropiadamente:", context: "Me duele la _____.", options: ["garganta", "jarganta"], correct: 0, explanation: "'Garganta' va con G." },
+            { question: "Selecciona la apropiada:", context: "Trabaja en una _____.", options: ["agencia", "ajencia"], correct: 0, explanation: "'Agencia' va con G." },
+            { question: "¿Cuál es la forma?", context: "Es de origen _____.", options: ["extranjero", "extrangero"], correct: 0, explanation: "'Extranjero' va con J." },
+            { question: "Complete la frase:", context: "Estudia _____.", options: ["geografía", "jeografía"], correct: 0, explanation: "'Geografía' va con G." }
         ]
     };
     
     const typeOptions = fallbacks[selectedPracticeType] || fallbacks.H;
-    return typeOptions[(currentQuestion - 1) % typeOptions.length];
+    return typeOptions[currentQuestion % typeOptions.length];
 }
 
 function displayQuestion(questionData) {
