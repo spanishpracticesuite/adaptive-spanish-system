@@ -470,79 +470,76 @@ function selectAdaptiveSubcategory() {
 
 async function generateAIQuestion() {
     const questionContent = document.getElementById('questionContent');
-    
     questionContent.innerHTML = `
         <div class="loading">
             <div class="spinner"></div>
             <span>Generando pregunta personalizada con IA...</span>
         </div>
     `;
-    
-    try {
-        const prompt = createQuestionPrompt();
-        
-        console.log('🤖 Sending prompt to Claude:', prompt.substring(0, 100) + '...');
-        
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": CLAUDE_API_KEY,
-                "anthropic-version": "2023-06-01"
-            },
-            body: JSON.stringify({
-                model: "claude-3-5-sonnet-20241022",
-                max_tokens: 500,
-                messages: [{ role: "user", content: prompt }]
-            })
-        });
-        
-        console.log('📡 Claude response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('📦 Claude raw response:', data);
-        
-        let claudeResponse = data.content[0].text;
-        console.log('🔤 Claude text response:', claudeResponse);
-        
-        // Clean response more thoroughly
-        let cleanResponse = claudeResponse
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .replace(/^[^{]*/, '')  // Remove anything before first {
-            .replace(/[^}]*$/, '}') // Remove anything after last }
-            .trim();
-            
-        console.log('🧹 Cleaned response:', cleanResponse);
-        
-        const questionData = JSON.parse(cleanResponse);
-        console.log('✅ Parsed question data:', questionData);
-        
-        // Validate the response structure
-        if (!questionData.question || !questionData.options || 
-            typeof questionData.correct !== 'number' || !questionData.explanation) {
-            throw new Error('Invalid question structure from AI');
-        }
-        
-        currentExercise = questionData;
-        usedQuestions.push({ context: questionData.context });
-        displayQuestion(questionData);
-        
-        console.log('✨ AI question generated successfully');
-        
-    } catch (error) {
-        console.error('❌ AI Question generation failed:', error);
-        console.log('🔄 Using fallback question instead');
-        
-        currentExercise = createFallbackQuestion();
-        displayQuestion(currentExercise);
-    }
-}
 
+    const prompt = createQuestionPrompt();
+    let attempt = 0;
+    let success = false;
+    let questionData = null;
+
+    while (attempt < 2 && !success) {
+        try {
+            console.log(`🤖 Attempt ${attempt + 1}: Sending prompt to Claude`);
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": CLAUDE_API_KEY,
+                    "anthropic-version": "2023-06-01"
+                },
+                body: JSON.stringify({
+                    model: "claude-3-5-sonnet-20241022",
+                    max_tokens: 500,
+                    messages: [{ role: "user", content: prompt }]
+                })
+            });
+
+            if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+
+            const data = await response.json();
+            let rawText = data.content[0].text;
+
+            let cleanText = rawText
+                .replace(/```json\n?/g, '')
+                .replace(/```\n?/g, '')
+                .replace(/^[^{]*/, '')
+                .replace(/[^}]*$/, '}')
+                .trim();
+
+            questionData = JSON.parse(cleanText);
+
+            if (
+                questionData &&
+                questionData.question &&
+                Array.isArray(questionData.options) &&
+                typeof questionData.correct === 'number' &&
+                questionData.explanation
+            ) {
+                success = true;
+                currentExercise = questionData;
+                usedQuestions.push({ context: questionData.context });
+                displayQuestion(questionData);
+                console.log('✅ AI question generated successfully');
+                return;
+            } else {
+                throw new Error('Invalid question structure');
+            }
+        } catch (error) {
+            console.warn(`⚠️ Attempt ${attempt + 1} failed:`, error.message);
+            attempt++;
+        }
+    }
+
+    console.log('🔄 Using fallback question after failed attempts');
+    currentExercise = createFallbackQuestion();
+    displayQuestion(currentExercise);
+}
+    
 function createQuestionPrompt() {
     const usedContexts = usedQuestions.map(q => q.context).join(', ');
     
