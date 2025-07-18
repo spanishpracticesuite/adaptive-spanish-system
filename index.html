@@ -6,92 +6,230 @@
     <title>Sistema Adaptivo de Español</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #667eea; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .screen { background: white; border-radius: 15px; padding: 30px; text-align: center; }
-        h1 { color: #2c3e50; margin-bottom: 20px; }
-        .input-group { margin: 20px 0; text-align: left; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; }
-        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        .btn { background: #3498db; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
-        .btn:hover { background: #2980b9; }
-        .student-info { background: #e3f2fd; padding: 15px; margin: 15px 0; border-radius: 5px; text-align: left; }
-        .practice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-        .practice-card { background: #f8f9fa; border: 2px solid #ddd; border-radius: 10px; padding: 15px; cursor: pointer; text-align: left; }
-        .practice-card:hover { border-color: #3498db; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .screen {
+            background: white; border-radius: 20px; padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1); text-align: center;
+        }
+        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 2.5em; }
+        .ai-badge {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: white;
+            padding: 8px 16px; border-radius: 20px; font-size: 0.9em;
+            display: inline-block; margin-bottom: 20px; font-weight: bold;
+        }
+        .airtable-badge {
+            background: linear-gradient(45deg, #2d7ff9, #18bfff); color: white;
+            padding: 6px 12px; border-radius: 15px; font-size: 0.8em;
+            display: inline-block; margin-left: 10px; font-weight: bold;
+        }
+        .input-group { margin: 25px 0; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
+        input[type="text"] {
+            width: 100%; padding: 12px; border: 2px solid #e9ecef;
+            border-radius: 10px; font-size: 1.1em;
+        }
+        .btn {
+            background: #3498db; color: white; border: none; padding: 15px 30px;
+            border-radius: 25px; font-size: 1.1em; cursor: pointer;
+            transition: all 0.3s ease; margin: 10px;
+        }
+        .btn:hover { background: #2980b9; transform: translateY(-2px); }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .student-info {
+            background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px;
+            margin: 20px 0; border-radius: 8px; text-align: left;
+        }
+        .data-source {
+            background: #f1f8e9; border-left: 4px solid #8bc34a; padding: 12px;
+            margin: 15px 0; border-radius: 5px; font-size: 0.9em;
+        }
+        .practice-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px; margin: 30px 0;
+        }
+        .practice-card {
+            background: white; border: 3px solid #e9ecef; border-radius: 15px;
+            padding: 20px; cursor: pointer; transition: all 0.3s ease;
+            text-align: left; position: relative;
+        }
+        .practice-card:hover {
+            border-color: #3498db; transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
         .practice-card.selected { border-color: #28a745; background: #f8fff9; }
         .practice-card.recommended { border-color: #ff6b6b; background: #fff8f8; }
-        .loading { text-align: center; padding: 20px; }
-        .question-card { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 10px; }
-        .options-grid { display: grid; gap: 10px; margin: 20px 0; }
-        .option-btn { padding: 12px; background: white; border: 2px solid #ddd; border-radius: 5px; cursor: pointer; }
-        .option-btn:hover { border-color: #3498db; }
-        .option-btn.correct { background: #d4edda; border-color: #28a745; }
-        .option-btn.incorrect { background: #f8d7da; border-color: #dc3545; }
-        .feedback { margin: 15px 0; padding: 15px; border-radius: 5px; }
-        .feedback.correct { background: #d4edda; color: #155724; }
-        .feedback.incorrect { background: #f8d7da; color: #721c24; }
+        .practice-title { font-size: 1.4em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+        .practice-level {
+            background: #3498db; color: white; padding: 4px 12px;
+            border-radius: 10px; font-size: 0.8em; display: inline-block; margin-bottom: 10px;
+        }
+        .practice-description { color: #6c757d; font-size: 0.95em; margin-bottom: 10px; }
+        .recommended-badge {
+            background: #ff6b6b; color: white; padding: 4px 10px; border-radius: 10px;
+            font-size: 0.8em; font-weight: bold; position: absolute; top: -10px; right: -10px;
+        }
+        .progress-bar {
+            width: 100%; height: 12px; background: #e9ecef; border-radius: 10px;
+            margin-bottom: 30px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%; transition: width 0.5s ease;
+        }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; }
+        .stat { text-align: center; margin: 10px; }
+        .stat-number { font-size: 2em; font-weight: bold; color: #3498db; }
+        .stat-label { color: #6c757d; margin-top: 5px; }
+        .question-card {
+            background: white; border-radius: 20px; padding: 30px; margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left;
+        }
+        .question-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+        }
+        .ai-generated {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: white;
+            padding: 6px 12px; border-radius: 15px; font-size: 0.8em; font-weight: bold;
+        }
+        .question-content {
+            background: #f8f9fa; border-left: 4px solid #6c757d; padding: 20px;
+            margin: 20px 0; border-radius: 8px; font-size: 1.1em;
+        }
+        .options-grid { display: grid; gap: 15px; max-width: 500px; margin: 25px auto; }
+        .option-btn {
+            padding: 15px 25px; font-size: 1.2em; background: #f8f9fa; color: #2c3e50;
+            border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s ease; text-align: center;
+        }
+        .option-btn:hover {
+            background: #e3f2fd; border-color: #2196f3; transform: translateY(-2px);
+        }
+        .option-btn.correct { background: #d4edda; border-color: #28a745; color: #155724; }
+        .option-btn.incorrect { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .feedback { margin: 25px 0; padding: 20px; border-radius: 15px; text-align: center; }
+        .feedback.correct { background: #d4edda; border: 2px solid #28a745; color: #155724; }
+        .feedback.incorrect { background: #f8d7da; border: 2px solid #dc3545; color: #721c24; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 30px; }
+        .spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%;
+            width: 30px; height: 30px; animation: spin 1s linear infinite; margin-right: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .practice-grid { grid-template-columns: 1fr; }
+            .stats { flex-direction: column; }
+            .question-header { flex-direction: column; text-align: center; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="screen" id="welcomeScreen">
+    <div class="welcome-screen screen" id="welcomeScreen">
         <h1>🎓 Sistema Adaptivo de Español</h1>
+        <div class="ai-badge">🤖 IA Adaptativa + Datos Reales</div>
+        <div class="airtable-badge">📊 Powered by Airtable</div>
+        <p style="font-size: 1.2em; color: #7f8c8d; margin-bottom: 30px;">
+            Sistema inteligente con práctica ilimitada personalizada
+        </p>
+        
         <div class="input-group">
             <label for="studentCode">Código de Estudiante:</label>
-            <input type="text" id="studentCode" placeholder="Ej: Jim001">
+            <input type="text" id="studentCode" placeholder="Ingresa tu código (ej: Jim001)" maxlength="20">
         </div>
-        <button class="btn" id="loadProfileBtn">Cargar Perfil</button>
+        
+        <button class="btn" id="loadProfileBtn">🔍 Cargar Mi Perfil desde Airtable</button>
+        
         <div id="studentProfile" style="display: none;">
             <div class="student-info">
-                <h3>Bienvenido, <span id="studentWelcome"></span>!</h3>
-                <p><strong>Películas:</strong> <span id="movieInterests"></span></p>
-                <p><strong>Deportes:</strong> <span id="sportsInterests"></span></p>
-                <p><strong>Música:</strong> <span id="musicInterests"></span></p>
-                <p><strong>Comida:</strong> <span id="foodInterests"></span></p>
-                <p><strong>Pasatiempos:</strong> <span id="hobbyInterests"></span></p>
+                <h3>👋 ¡Bienvenido, <span id="studentWelcome"></span>!</h3>
+                <div class="data-source">📊 <strong>Datos cargados desde Airtable en tiempo real</strong></div>
+                <p><strong>🎬 Películas:</strong> <span id="movieInterests"></span></p>
+                <p><strong>⚽ Deportes:</strong> <span id="sportsInterests"></span></p>
+                <p><strong>🎵 Música:</strong> <span id="musicInterests"></span></p>
+                <p><strong>🍕 Comida:</strong> <span id="foodInterests"></span></p>
+                <p><strong>🎨 Pasatiempos:</strong> <span id="hobbyInterests"></span></p>
             </div>
             <div class="practice-grid" id="practiceGrid"></div>
-            <button class="btn" onclick="startPractice()" id="startBtn" style="display: none;">Empezar Práctica</button>
+            <button class="btn" onclick="startAdaptivePractice()" id="startBtn" style="display: none;">
+                🚀 ¡Empezar Práctica Adaptativa!
+            </button>
         </div>
     </div>
-    
-    <div class="screen" id="practiceScreen" style="display: none;">
-        <h2>Pregunta <span id="currentQuestion">1</span> de 5</h2>
+
+    <div class="practice-screen screen" id="practiceScreen" style="display: none;">
+        <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+        <div class="stats">
+            <div class="stat"><div class="stat-number" id="currentQuestionNum">1</div><div class="stat-label">Pregunta</div></div>
+            <div class="stat"><div class="stat-number" id="correctCount">0</div><div class="stat-label">Correctas</div></div>
+            <div class="stat"><div class="stat-number" id="practiceTypeDisplay">H</div><div class="stat-label">Práctica</div></div>
+            <div class="stat"><div class="stat-number" id="subcategoryDisplay">HQ1</div><div class="stat-label">Categoría</div></div>
+        </div>
         <div class="question-card" id="questionCard">
-            <div class="loading">Generando pregunta...</div>
+            <div class="question-header">
+                <h3 id="questionTitle">Generando pregunta adaptativa...</h3>
+                <div class="ai-generated">🤖 IA + 📊 Datos Reales</div>
+            </div>
+            <div id="questionContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>Generando pregunta basada en tu perfil real...</span>
+                </div>
+            </div>
         </div>
-        <button class="btn" onclick="endPractice()">Terminar</button>
+        <button class="btn btn-secondary" onclick="endPractice()" style="margin-top: 20px;">Terminar Práctica</button>
     </div>
-    
-    <div class="screen" id="resultsScreen" style="display: none;">
-        <h1>¡Sesión Completada!</h1>
-        <p>Respuestas correctas: <span id="finalScore">0</span></p>
-        <button class="btn" onclick="restart()">Nueva Sesión</button>
+
+    <div class="results-screen screen" id="resultsScreen" style="display: none;">
+        <h1>🎉 ¡Sesión Completada!</h1>
+        <div class="ai-badge">📊 Análisis Guardado en Airtable</div>
+        <div class="stats">
+            <div class="stat"><div class="stat-number" id="finalScore">0</div><div class="stat-label">Preguntas Completadas</div></div>
+            <div class="stat"><div class="stat-number" id="finalAccuracy">0%</div><div class="stat-label">Precisión</div></div>
+            <div class="stat"><div class="stat-number" id="categoriesPracticed">0</div><div class="stat-label">Categorías Practicadas</div></div>
+        </div>
+        <div class="student-info" id="progressSummary">
+            <h3>📈 Resumen de tu Progreso</h3>
+            <div id="progressDetails"></div>
+            <div class="data-source" id="saveStatus">📤 <strong>Guardando resultados en Airtable...</strong></div>
+        </div>
+        <div style="margin-top: 30px;">
+            <button class="btn" onclick="restartPractice()">🔄 Nueva Sesión</button>
+        </div>
     </div>
 </div>
 
 <script>
-// Configuration
+let studentData = null;
+let currentQuestion = 0;
+let correctAnswers = 0;
+let totalQuestions = 20;
+let selectedPracticeType = '';
+let currentSubcategory = '';
+let sessionData = [];
+let startTime = null;
+let attemptCount = 0;
+let currentExercise = null;
+let practiceConfig = {};
+let usedQuestions = [];
+
 const AIRTABLE_BASE_ID = 'app7lGIzQKfZv6Wwg';
 const AIRTABLE_API_KEY = 'pat0UHJ77pfMRbCos.66879c99abcdbcc82bf40f1bbe0531cf1118dbb69c4f2bea61cdf01f9d1872d3';
 const CLAUDE_API_KEY = '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';
 
-// Global variables
-let studentData = null;
-let currentQuestion = 0;
-let correctAnswers = 0;
-let selectedPracticeType = '';
-let currentExercise = null;
-
 const PRACTICE_TYPES = {
-    H: { title: 'Práctica de H', description: 'Haber vs A ver, etc.' },
-    BV: { title: 'Práctica de B/V', description: 'Botar vs Votar, etc.' },
-    HAY: { title: 'Ahí/Hay/Ay', description: 'Diferencias entre las tres' },
-    GJ: { title: 'Práctica de G/J', description: 'Sonidos ge/gi vs je/ji' }
+    H: { title: '✏️ Práctica de H', description: 'Haber vs A ver, Hecho vs Echo, y más', subcategories: { HQ1: 'Haber vs A ver', HQ2: 'Hecho vs Echo', HQ3: 'Hasta vs Asta', HQ4: 'Haya vs Allá', HQ5: 'Ha vs A', HQ6: 'He vs E' } },
+    BV: { title: '🔤 Práctica de B/V', description: 'Botar vs Votar, Tuvo vs Tubo, y más', subcategories: { BQ1: 'Estaba vs Estava', BQ2: 'Botar vs Votar', BQ3: 'Tuvo vs Tubo', BQ4: 'Gravar vs Grabar', BQ5: 'Formas Verbales', BQ6: 'Patrones de Ortografía' } },
+    HAY: { title: '🎯 Ahí/Hay/Ay', description: 'Diferencias entre Ahí, Hay, y Ay', subcategories: { HAY1: 'Hay (verbo haber)', HAY2: 'Ahí (lugar)', HAY3: 'Ay (interjección)', HAY4: 'Contextos formales', HAY5: 'Combinaciones complejas', HAY6: 'Práctica mixta' } },
+    GJ: { title: '🗣️ Práctica de G/J', description: 'Sonidos ge/gi vs je/ji y patrones', subcategories: { GJ1: 'ge/gi vs je/ji', GJ2: 'Verbos comunes', GJ3: 'Sustantivos frecuentes', GJ4: 'Palabras técnicas', GJ5: 'Origen extranjero', GJ6: 'Práctica mixta' } }
 };
 
-// Load student data
 async function loadStudentFromAirtable(studentCode) {
     try {
         const filterFormula = `student_id='${studentCode}'`;
@@ -104,45 +242,70 @@ async function loadStudentFromAirtable(studentCode) {
             }
         });
         
+        if (!response.ok) throw new Error(`Airtable API error: ${response.status}`);
+        
         const data = await response.json();
         
         if (data.records && data.records.length > 0) {
             return data.records[0].fields;
         } else {
-            // Fallback demo data
             return {
                 student_id: 'Jim001',
-                movies: 'Comedia, Fantasía',
-                sports: 'Béisbol, Tenis',
-                music: 'Rock, Latina',
-                food: 'Tacos, Pasta',
-                hobbies: 'Arte, Fotografía',
+                movies: 'Comedia, Fantasía, Misterio/Crimen',
+                sports: 'Béisbol (ver), Tenis, Natación',
+                music: 'Rock, Clásica, Latina, Salsa/Bachata',
+                food: 'Tacos/Comida Mexicana, Italiana/Pasta',
+                hobbies: 'Arte/Dibujo, Fotografía, Cocinar/Hornear',
                 h_nivel: 'intermedio',
+                bv_nivel: 'principiante',
+                hay_nivel: 'principiante',
+                gj_nivel: 'intermedio',
                 h_dificultades: 'haber vs a ver',
+                bv_dificultades: 'formas verbales',
+                hay_dificultades: 'hay vs ahí',
+                gj_dificultades: 'ge/gi vs je/ji',
                 enfoque_actual: 'H'
             };
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error loading student:', error);
         return null;
     }
 }
 
-// Main load function
+async function saveSessionToAirtable(sessionData) {
+    try {
+        const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Sessions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fields: sessionData })
+        });
+        
+        if (!response.ok) throw new Error(`Airtable save error: ${response.status}`);
+        const result = await response.json();
+        return { success: true, id: result.id };
+    } catch (error) {
+        return { error: error.message };
+    }
+}
+
 async function loadStudentProfile() {
     const studentCode = document.getElementById('studentCode').value.trim().toUpperCase();
+    const loadBtn = document.getElementById('loadProfileBtn');
+    
     if (!studentCode) {
-        alert('Ingresa un código válido');
+        alert('Por favor, ingresa un código de estudiante válido.');
         return;
     }
     
-    const loadBtn = document.getElementById('loadProfileBtn');
-    loadBtn.innerHTML = 'Cargando...';
+    loadBtn.innerHTML = '🔄 Cargando...';
     loadBtn.disabled = true;
     
     try {
         studentData = await loadStudentFromAirtable(studentCode);
-        
         if (studentData) {
             displayStudentProfile();
         } else {
@@ -152,11 +315,14 @@ async function loadStudentProfile() {
         alert('Error cargando datos');
     }
     
-    loadBtn.innerHTML = 'Cargar Perfil';
+    loadBtn.innerHTML = '🔍 Cargar Mi Perfil desde Airtable';
     loadBtn.disabled = false;
 }
 
-// Display profile
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('loadProfileBtn').addEventListener('click', loadStudentProfile);
+});
+
 function displayStudentProfile() {
     document.getElementById('studentWelcome').textContent = studentData.student_id;
     document.getElementById('movieInterests').textContent = studentData.movies || 'No especificado';
@@ -169,60 +335,107 @@ function displayStudentProfile() {
     document.getElementById('studentProfile').style.display = 'block';
 }
 
-// Create practice options
 function createPracticeOptions() {
     const grid = document.getElementById('practiceGrid');
     grid.innerHTML = Object.keys(PRACTICE_TYPES).map(practiceId => {
         const practice = PRACTICE_TYPES[practiceId];
         const isRecommended = practiceId === studentData.enfoque_actual;
+        const level = studentData[`${practiceId.toLowerCase()}_nivel`] || 'principiante';
+        const difficulties = studentData[`${practiceId.toLowerCase()}_dificultades`] || 'Áreas básicas';
+        
         return `
             <div class="practice-card ${isRecommended ? 'recommended' : ''}" onclick="selectPractice('${practiceId}')">
-                <div style="font-weight: bold;">${practice.title}</div>
-                <div style="font-size: 0.9em; color: #666;">${practice.description}</div>
-                ${isRecommended ? '<div style="color: #ff6b6b; font-size: 0.8em;">Recomendado</div>' : ''}
+                ${isRecommended ? '<div class="recommended-badge">Recomendado</div>' : ''}
+                <div class="practice-title">${practice.title}</div>
+                <div class="practice-level">${level}</div>
+                <div class="practice-description">${practice.description}</div>
+                <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                    <strong>Enfoque actual:</strong> ${difficulties}
+                </div>
             </div>
         `;
     }).join('');
 }
 
-// Select practice
 function selectPractice(practiceType) {
     selectedPracticeType = practiceType;
     document.querySelectorAll('.practice-card').forEach(card => card.classList.remove('selected'));
-    event.target.closest('.practice-card').classList.add('selected');
+    const clickedCard = event.target.closest('.practice-card');
+    if (clickedCard) clickedCard.classList.add('selected');
     document.getElementById('startBtn').style.display = 'inline-block';
 }
 
-// Start practice
-function startPractice() {
+async function startAdaptivePractice() {
     if (!selectedPracticeType) {
-        alert('Selecciona una práctica');
+        alert('Por favor, selecciona un tipo de práctica.');
         return;
     }
     
+    startTime = new Date();
     currentQuestion = 0;
     correctAnswers = 0;
+    sessionData = [];
+    usedQuestions = [];
+    practiceConfig = PRACTICE_TYPES[selectedPracticeType];
     
     document.getElementById('welcomeScreen').style.display = 'none';
     document.getElementById('practiceScreen').style.display = 'block';
+    document.getElementById('practiceTypeDisplay').textContent = selectedPracticeType;
     
-    generateNextQuestion();
+    await generateNextQuestion();
 }
 
-// Generate question
 async function generateNextQuestion() {
     currentQuestion++;
     
-    if (currentQuestion > 5) {
+    if (currentQuestion > totalQuestions) {
         endPractice();
         return;
     }
     
-    document.getElementById('currentQuestion').textContent = currentQuestion;
-    document.getElementById('questionCard').innerHTML = '<div class="loading">Generando pregunta...</div>';
+    attemptCount = 0;
+    currentSubcategory = selectAdaptiveSubcategory();
+    
+    document.getElementById('currentQuestionNum').textContent = currentQuestion;
+    document.getElementById('subcategoryDisplay').textContent = currentSubcategory;
+    
+    const progress = ((currentQuestion - 1) / totalQuestions) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+    
+    await generateAIQuestion();
+}
+
+function selectAdaptiveSubcategory() {
+    const practiceKey = selectedPracticeType.toLowerCase();
+    const subcategories = Object.keys(practiceConfig.subcategories);
+    
+    if (selectedPracticeType === 'HAY') {
+        const hayOrder = ['HAY1', 'HAY2', 'HAY3', 'HAY4', 'HAY5', 'HAY6'];
+        return hayOrder[(currentQuestion - 1) % hayOrder.length];
+    }
+    
+    const studentLevel = studentData[`${practiceKey}_nivel`];
+    if (studentLevel === 'principiante') {
+        return subcategories[Math.floor(Math.random() * 2)];
+    } else if (studentLevel === 'intermedio') {
+        return subcategories[Math.floor(Math.random() * 4)];
+    } else {
+        return subcategories[Math.floor(Math.random() * subcategories.length)];
+    }
+}
+
+async function generateAIQuestion() {
+    const questionContent = document.getElementById('questionContent');
+    
+    questionContent.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <span>Generando pregunta personalizada con IA...</span>
+        </div>
+    `;
     
     try {
-        const prompt = `Create a Spanish ${selectedPracticeType} practice question using these interests: ${studentData.movies}, ${studentData.sports}, ${studentData.food}. Return JSON: {"question": "text", "context": "sentence with blank", "options": ["option1", "option2"], "correct": 0, "explanation": "why"}`;
+        const prompt = createQuestionPrompt();
         
         const response = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
@@ -233,7 +446,7 @@ async function generateNextQuestion() {
             },
             body: JSON.stringify({
                 model: "claude-3-5-sonnet-20241022",
-                max_tokens: 500,
+                max_tokens: 1000,
                 messages: [{ role: "user", content: prompt }]
             })
         });
@@ -243,42 +456,77 @@ async function generateNextQuestion() {
         const questionData = JSON.parse(cleanResponse);
         
         currentExercise = questionData;
+        usedQuestions.push({ context: questionData.context });
         displayQuestion(questionData);
         
     } catch (error) {
-        console.error('Question generation error:', error);
-        const fallback = {
-            question: "Complete la oración:",
-            context: "Voy _____ si hay mensajes.",
-            options: ["a ver", "haber"],
-            correct: 0,
-            explanation: "'A ver' significa 'to see'"
-        };
-        currentExercise = fallback;
-        displayQuestion(fallback);
+        console.error('Error generating question:', error);
+        currentExercise = createFallbackQuestion();
+        displayQuestion(currentExercise);
     }
 }
 
-// Display question
+function createQuestionPrompt() {
+    const usedContexts = usedQuestions.map(q => q.context).join(', ');
+    
+    return `Create a unique Spanish ${selectedPracticeType} practice question #${currentQuestion} for student interests: ${studentData.movies}, ${studentData.sports}, ${studentData.food}, ${studentData.hobbies}. 
+
+Make it completely different from: ${usedContexts}
+
+Focus on ${selectedPracticeType} spelling rules. Return JSON: 
+{
+  "question": "Complete the sentence with the correct word",
+  "context": "Unique sentence with ___ blank using their interests",
+  "options": ["correct_word", "incorrect_word"],
+  "correct": 0,
+  "explanation": "Brief explanation"
+}
+
+NO markdown, just JSON.`;
+}
+
+function createFallbackQuestion() {
+    const fallbacks = {
+        H: [
+            { question: "Complete la oración:", context: "Voy _____ si hay mensajes.", options: ["a ver", "haber"], correct: 0, explanation: "'A ver' significa 'to see'." },
+            { question: "¿Cuál es correcta?", context: "Ya _____ terminado.", options: ["he", "e"], correct: 0, explanation: "'He' es del verbo haber." }
+        ],
+        BV: [
+            { question: "Selecciona la correcta:", context: "Yo _____ en casa.", options: ["estaba", "estava"], correct: 0, explanation: "'Estaba' va con B." },
+            { question: "¿Cuál es apropiada?", context: "Voy a _____.", options: ["votar", "botar"], correct: 0, explanation: "'Votar' es elegir." }
+        ],
+        HAY: [
+            { question: "Complete:", context: "_____ estudiantes aquí.", options: ["Hay", "Ahí"], correct: 0, explanation: "'Hay' indica existencia." },
+            { question: "¿Cuál es correcta?", context: "El libro está _____.", options: ["ahí", "hay"], correct: 0, explanation: "'Ahí' indica lugar." }
+        ],
+        GJ: [
+            { question: "Selecciona:", context: "Quiero que _____ bien.", options: ["elija", "elija"], correct: 0, explanation: "'Elegir' en subjuntivo va con J." }
+        ]
+    };
+    
+    const typeOptions = fallbacks[selectedPracticeType] || fallbacks.H;
+    return typeOptions[(currentQuestion - 1) % typeOptions.length];
+}
+
 function displayQuestion(questionData) {
-    document.getElementById('questionCard').innerHTML = `
-        <h3>${questionData.question}</h3>
-        <div style="background: white; padding: 15px; margin: 15px 0; border-radius: 5px;">
-            ${questionData.context}
-        </div>
+    const questionContent = document.getElementById('questionContent');
+    const questionTitle = document.getElementById('questionTitle');
+    
+    questionTitle.textContent = questionData.question;
+    
+    questionContent.innerHTML = `
+        <div class="question-content">${questionData.context}</div>
         <div class="options-grid">
             ${questionData.options.map((option, index) => `
-                <button class="option-btn" onclick="selectAnswer(${index})">
-                    ${option}
-                </button>
+                <button class="option-btn" onclick="selectAnswer(${index})">${option}</button>
             `).join('')}
         </div>
         <div id="feedback" style="display: none;"></div>
     `;
 }
 
-// Select answer
 function selectAnswer(selectedIndex) {
+    attemptCount++;
     const isCorrect = selectedIndex === currentExercise.correct;
     
     document.querySelectorAll('.option-btn').forEach(btn => btn.style.pointerEvents = 'none');
@@ -295,32 +543,97 @@ function selectAnswer(selectedIndex) {
     feedback.innerHTML = `<strong>${isCorrect ? '¡Correcto!' : 'Incorrecto'}</strong><br>${currentExercise.explanation}`;
     feedback.style.display = 'block';
     
-    if (isCorrect) correctAnswers++;
+    if (isCorrect) {
+        correctAnswers++;
+        document.getElementById('correctCount').textContent = correctAnswers;
+    }
     
-    setTimeout(() => generateNextQuestion(), 2000);
+    sessionData.push({
+        question_number: currentQuestion,
+        practice_type: selectedPracticeType,
+        subcategory: currentSubcategory,
+        question: currentExercise.question,
+        context: currentExercise.context,
+        student_answer: currentExercise.options[selectedIndex],
+        correct_answer: currentExercise.options[currentExercise.correct],
+        is_correct: isCorrect,
+        attempts: attemptCount,
+        timestamp: new Date().toISOString()
+    });
+    
+    setTimeout(() => generateNextQuestion(), 3000);
 }
 
-// End practice
 function endPractice() {
+    const endTime = new Date();
+    const sessionDuration = Math.round((endTime - startTime) / 1000);
+    const accuracy = Math.round((correctAnswers / currentQuestion) * 100);
+    const categoriesPracticed = new Set(sessionData.map(q => q.subcategory)).size;
+    
+    const sessionSummary = {
+        student_id: studentData.student_id,
+        practice_type: selectedPracticeType,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        duration_seconds: sessionDuration,
+        total_questions: currentQuestion,
+        correct_answers: correctAnswers,
+        accuracy_percentage: accuracy,
+        categories_practiced: categoriesPracticed,
+        questions_data: JSON.stringify(sessionData)
+    };
+    
     document.getElementById('practiceScreen').style.display = 'none';
     document.getElementById('resultsScreen').style.display = 'block';
-    document.getElementById('finalScore').textContent = `${correctAnswers} de ${currentQuestion - 1}`;
+    
+    document.getElementById('finalScore').textContent = currentQuestion;
+    document.getElementById('finalAccuracy').textContent = accuracy + '%';
+    document.getElementById('categoriesPracticed').textContent = categoriesPracticed;
+    
+    const progressDetails = document.getElementById('progressDetails');
+    progressDetails.innerHTML = `
+        <p><strong>⏱️ Duración:</strong> ${Math.floor(sessionDuration / 60)}:${(sessionDuration % 60).toString().padStart(2, '0')}</p>
+        <p><strong>🎯 Tipo de Práctica:</strong> ${PRACTICE_TYPES[selectedPracticeType].title}</p>
+        <p><strong>📊 Respuestas Correctas:</strong> ${correctAnswers} de ${currentQuestion}</p>
+        <p><strong>🔍 Categorías Practicadas:</strong> ${Array.from(new Set(sessionData.map(q => q.subcategory))).join(', ')}</p>
+    `;
+    
+    saveSessionToAirtable(sessionSummary).then(result => {
+        const saveStatus = document.getElementById('saveStatus');
+        if (result.success) {
+            saveStatus.innerHTML = '✅ <strong>Resultados guardados exitosamente en Airtable</strong>';
+            saveStatus.style.backgroundColor = '#d4edda';
+            saveStatus.style.borderColor = '#28a745';
+        } else {
+            saveStatus.innerHTML = '⚠️ <strong>Error guardando en Airtable: ' + (result.error || 'Unknown error') + '</strong>';
+            saveStatus.style.backgroundColor = '#f8d7da';
+            saveStatus.style.borderColor = '#dc3545';
+        }
+    });
 }
 
-// Restart
-function restart() {
+function restartPractice() {
+    currentQuestion = 0;
+    correctAnswers = 0;
+    sessionData = [];
+    usedQuestions = [];
+    selectedPracticeType = '';
+    currentSubcategory = '';
+    currentExercise = null;
+    
     document.getElementById('resultsScreen').style.display = 'none';
     document.getElementById('welcomeScreen').style.display = 'block';
+    
+    document.getElementById('currentQuestionNum').textContent = '1';
+    document.getElementById('correctCount').textContent = '0';
+    document.getElementById('progressBar').style.width = '0%';
     document.getElementById('startBtn').style.display = 'none';
+    
     document.querySelectorAll('.practice-card').forEach(card => card.classList.remove('selected'));
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('loadProfileBtn').addEventListener('click', loadStudentProfile);
-});
-
-console.log('Sistema cargado correctamente');
+console.log('🚀 Sistema Adaptivo de Español - Complete Production Version Loaded');
+console.log('📊 Features: 20 questions, beautiful UI, Airtable integration, question variety');
 </script>
 </body>
 </html>
