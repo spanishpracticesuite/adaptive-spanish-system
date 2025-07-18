@@ -485,19 +485,17 @@ async function generateAIQuestion() {
     while (attempt < 2 && !success) {
         try {
             console.log(`🤖 Attempt ${attempt + 1}: Sending prompt to Claude`);
-            const response = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": CLAUDE_API_KEY,
-                    "anthropic-version": "2023-06-01"
-                },
-                body: JSON.stringify({
-                    model: "claude-3-5-sonnet-20241022",
-                    max_tokens: 500,
-                    messages: [{ role: "user", content: prompt }]
-                })
-            });
+            const response = await fetch("/api/claude", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 500,
+    messages: [{ role: "user", content: prompt }]
+  })
+});
 
             if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
 
