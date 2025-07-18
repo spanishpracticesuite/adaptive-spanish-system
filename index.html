@@ -484,41 +484,37 @@ async function generateAIQuestion() {
 
     while (attempt < 2 && !success) {
         try {
-            console.log(`🤖 Attempt ${attempt + 1}: Sending prompt to Claude`);
+            console.log(`🤖 Attempt ${attempt + 1}: Sending prompt to Claude proxy`);
             const response = await fetch("/api/claude", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    model: "claude-3-5-sonnet-20241022",
-    max_tokens: 500,
-    messages: [{ role: "user", content: prompt }]
-  })
-});
-
-            if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "claude-3-sonnet-20240229",
+                    max_tokens: 500,
+                    messages: [{ role: "user", content: prompt }]
+                })
+            });
 
             const data = await response.json();
-            let rawText = data.content[0].text;
 
-            let cleanText = rawText
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .replace(/^[^{]*/, '')
-                .replace(/[^}]*$/, '}')
-                .trim();
+            if (data.error) {
+                throw new Error(data.error);
+            }
 
-            questionData = JSON.parse(cleanText);
+            console.log('📦 Claude proxy response:', data);
 
+            // Validate the structure
             if (
-                questionData &&
-                questionData.question &&
-                Array.isArray(questionData.options) &&
-                typeof questionData.correct === 'number' &&
-                questionData.explanation
+                data &&
+                data.question &&
+                Array.isArray(data.options) &&
+                typeof data.correct === 'number' &&
+                data.explanation
             ) {
                 success = true;
+                questionData = data;
                 currentExercise = questionData;
                 usedQuestions.push({ context: questionData.context });
                 displayQuestion(questionData);
