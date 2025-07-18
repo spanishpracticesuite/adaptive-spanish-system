@@ -536,36 +536,46 @@ async function generateAIQuestion() {
     
 function createQuestionPrompt() {
     const usedContexts = usedQuestions.map(q => q.context).join(', ');
-    
+    const contextHints = `${studentData.movies || 'películas'}, ${studentData.sports || 'deportes'}, ${studentData.food || 'comida'}, ${studentData.hobbies || 'pasatiempos'}`;
+
     let specificInstructions = '';
-    
+    let example = `
+Example format:
+{
+  "question": "¿Cuál es la forma correcta?",
+  "context": "Voy ___ la escuela.",
+  "options": ["hasta", "asta"],
+  "correct": 0,
+  "explanation": "'Hasta' indica límite de lugar o tiempo."
+}
+`;
+
     switch(selectedPracticeType) {
         case 'H':
-            specificInstructions = `Create an H practice question. Use ONLY H word pairs like: haber/a ver, hecho/echo, hasta/asta, haya/allá, ha/a, he/e, hacer/acer, hacia/acia, hay/ay. Make the context about: ${studentData.movies || 'movies'}, ${studentData.sports || 'sports'}, ${studentData.food || 'food'}.`;
+            specificInstructions = `Create a Spanish orthographic question using H word pairs like: haber/a ver, hecho/echo, hasta/asta, haya/allá, ha/a, he/e. Use a sentence with a blank. Context should relate to: ${contextHints}.`;
             break;
         case 'BV':
-            specificInstructions = `Create a B/V practice question. Use ONLY B/V word pairs like: estaba/estava, votar/botar, tuvo/tubo, grabar/gravar, absorber/absorver, escribir/escrivir. Make the context about: ${studentData.hobbies || 'hobbies'}, ${studentData.music || 'music'}.`;
+            specificInstructions = `Create a Spanish orthographic question using B/V word pairs like: estaba/estava, votar/botar, tuvo/tubo, grabar/gravar. Use a sentence with a blank. Context should relate to: ${contextHints}.`;
             break;
         case 'HAY':
-            specificInstructions = `Create a HAY/AHÍ/AY question. Use ONLY these three words: hay (existence), ahí (location), ay (exclamation). Context about: ${studentData.sports || 'sports'}, ${studentData.food || 'food'}.`;
+            specificInstructions = `Create a Spanish orthographic question using hay/ahí/ay. Use a sentence with a blank. Context should relate to: ${contextHints}.`;
             break;
         case 'GJ':
-            specificInstructions = `Create a G/J practice question. Use G/J word pairs like: elegir/elijir, gente/jente, coger/cojer, gerente/jerente, geografía/jeografía, extranjero/extrangero. Context about: ${studentData.movies || 'movies'}.`;
+            specificInstructions = `Create a Spanish orthographic question using G/J word pairs like: coger/cojer, gerente/jerente, geografía/jeografía. Use a sentence with a blank. Context should relate to: ${contextHints}.`;
             break;
     }
-    
-    return `${specificInstructions}
 
-Question #${currentQuestion}. Make it DIFFERENT from: ${usedContexts}
+    return `
+${specificInstructions}
 
-Return ONLY this JSON format:
-{
-  "question": "Complete la oración:",
-  "context": "NEW sentence with ___ blank",
-  "options": ["correct_word", "incorrect_word"],
-  "correct": 0,
-  "explanation": "Brief rule explanation"
-}`;
+Do NOT explain your answer. Do NOT include markdown or code formatting. Respond ONLY with a valid JSON object in this format:
+
+${example}
+
+Make sure the JSON starts with { and ends with }. Do not include any extra text before or after the JSON.
+
+Avoid repeating contexts: ${usedContexts}
+`;
 }
 
 function createFallbackQuestion() {
