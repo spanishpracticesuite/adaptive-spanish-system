@@ -405,17 +405,7 @@
         </p>
 
         <!-- Configuration Section -->
-        <div class="config-section" id="configSection">
-            <h3>🔧 Configuración de API</h3>
-            <p style="color: #856404; margin-bottom: 15px;">
-                Ingresa tus credenciales de Airtable:
-            </p>
-            <input type="text" class="config-input" id="airtableBaseId" placeholder="Airtable Base ID (app...)" value="">
-            <input type="password" class="config-input" id="airtableApiKey" placeholder="Airtable API Key (pat...)" value="">
-            <small style="color: #856404;">
-                💡 Estas credenciales se guardarán temporalmente en tu navegador para esta sesión
-            </small>
-        </div>
+       
         
         <div class="input-group">
             <label for="studentCode">Código de Estudiante:</label>
@@ -600,15 +590,7 @@ async function loadStudentFromAirtable(studentCode) {
         const baseId = 'app7lGIzQKfZv6Wwg';
         const apiKey = 'pat0UHJ77pfMRbCos';
         
-        if (!baseId || !apiKey) {
-            alert('Por favor, ingresa tu Base ID y API Key de Airtable primero.');
-            return null;
-        }
-        
-        if (baseId === 'demo' || apiKey === 'demo') {
-            // Use demo data if credentials aren't set
-            return loadDemoStudentData(studentCode);
-        }
+        // Credentials are hardcoded, no validation needed
         
         // Real Airtable API call
         const filterFormula = `student_id='${studentCode}'`;
