@@ -505,16 +505,31 @@ async function generateAIQuestion() {
 
             console.log('📦 Claude proxy response:', data);
 
+            // If Claude returned raw text instead of parsed JSON
+            if (!data.question) {
+                let rawText = JSON.stringify(data);
+                let jsonStart = rawText.indexOf('{');
+                let jsonEnd = rawText.lastIndexOf('}');
+                let cleanText = rawText.slice(jsonStart, jsonEnd + 1).trim();
+
+                try {
+                    questionData = JSON.parse(cleanText);
+                } catch (parseError) {
+                    throw new Error('Failed to parse cleaned JSON');
+                }
+            } else {
+                questionData = data;
+            }
+
             // Validate the structure
             if (
-                data &&
-                data.question &&
-                Array.isArray(data.options) &&
-                typeof data.correct === 'number' &&
-                data.explanation
+                questionData &&
+                questionData.question &&
+                Array.isArray(questionData.options) &&
+                typeof questionData.correct === 'number' &&
+                questionData.explanation
             ) {
                 success = true;
-                questionData = data;
                 currentExercise = questionData;
                 usedQuestions.push({ context: questionData.context });
                 displayQuestion(questionData);
